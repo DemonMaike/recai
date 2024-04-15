@@ -1,0 +1,54 @@
+
+{
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "users": [
+    {
+      "name": "admin",
+      "password": "admin",
+      "tags": ["administrator", "management"] 
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin", 
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*", 
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "MainQueue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {},
+      "vhost": "/"
+    },
+    {
+      "name": "DiarizationQueue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {},
+      "vhost": "/"
+    },
+    {
+      "name": "LLMQueue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {},
+      "vhost": "/"
+    },
+    {
+      "name": "FullWayQueue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {},
+      "vhost": "/"
+    }
+  ]
+}
