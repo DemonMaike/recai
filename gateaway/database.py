@@ -1,13 +1,12 @@
 from typing import AsyncGenerator
-from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from models import Base, Task, Audio, DiaraziedText, Report
-from models import Base
+from config import DB_NAME, DB_USER, DB_PASS, DB_PORT, DB_HOST
 
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/postgres"
+DB_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?async_fallback=True"
 
 
-engine = create_async_engine(DATABASE_URL)
+engine = create_async_engine(DB_URL)
 async_session_maker = async_sessionmaker(
     engine, expire_on_commit=False, class_=AsyncSession)
 

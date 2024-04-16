@@ -1,7 +1,8 @@
 from datetime import datetime
-from sqlalchemy import TIMESTAMP, Column, ForeignKey, Integer, String, Table
+from sqlalchemy import TIMESTAMP, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base
-from database import engine
+
+
 Base = declarative_base()
 
 
