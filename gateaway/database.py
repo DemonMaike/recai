@@ -1,6 +1,6 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from models import Base, Task, Audio, DiaraziedText, Report
+from models import Base, Task
 from config import DB_NAME, DB_USER, DB_PASS, DB_PORT, DB_HOST
 
 DB_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?async_fallback=True"

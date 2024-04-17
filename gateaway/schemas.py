@@ -1,33 +1,32 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 from pydantic import BaseModel
 
+# Вынести в utils
+
+
+class Status(Enum):
+    AUDIO_RECEIVED = "Audio received"
+    TEXT_RECEIVED = " Text received"
+    AUDIO_DIARIZATION_PROCESSING = " Diarazing for audio"
+    DIARIZATION_COMPLETED = "Diarization complited"
+    LLM_ANALYSIS_PROCESSING = " Analizing of LLM"
+    REPORT_COMPLETED = "Report complited"
+    COMPLETED = "Task complited"
+    ERROR = "Error"
+
 
 class Task(BaseModel):
-    task_id: int
-    status: str
-    creation_date: Optional[datetime] = None
-    audio_id: int
-    text_id: int
-    report_id: int
-    error_info: Optional[str] = None
+    status: Status
+    audio_path: Optional[str] = None
+    text_path: Optional[str] = None
+    report_path: Optional[str] = None
 
 
 class Audio(BaseModel):
-    audio_id: int
-    audio_path: str
-    error_info: Optional[str] = None
+    audio_path: str = "/audio/audio.wav"
 
 
-class DiaraziedText(BaseModel):
-    text_id: int
-    text_path: str
-    task_id: int
-    error_info: Optional[str] = None
-
-
-class Report(BaseModel):
-    report_id: int
-    report_path: str
-    task_id: int
-    error_info: Optional[str] = None
+class Text(BaseModel):
+    text_path: str = "/text/file.txt"
