@@ -1,11 +1,20 @@
+from database.database import create_db
 from fastapi import FastAPI
-from routers import debug_router, upload_router, main_router
 from fastapi.staticfiles import StaticFiles
+from .routers import debug_router, upload_router, main_router
+
+
 app = FastAPI()
 
 app.include_router(debug_router)
 app.include_router(upload_router)
 app.include_router(main_router)
 
+app.mount("/media", StaticFiles(directory="static"), name="media")
 
-app.mount("/media", StaticFiles(directory="media"), name="media")
+
+@app.on_event('startup')
+async def startup_event():
+    print("Creating db...")
+    await create_db()
+    print("DB created!")

@@ -1,12 +1,7 @@
-# Игнорировать все файлы в папке media и всех подпапках
-/gateaway/media/**/*
 
-# Но сохранять структуру папок media, audio, report, text
-!/gateaway/media/
-!/gateaway/media/audio/
-!/gateaway/media/report/
-!/gateaway/media/text/
-
+static/text/*
+static/report/*
+static/audio/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore\?templates\=python

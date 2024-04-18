@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 
-load_dotenv("./.env")
+load_dotenv()
 
 DB_NAME = os.getenv("DATABASE_NAME")
 DB_USER = os.getenv("DATABASE_USER")
