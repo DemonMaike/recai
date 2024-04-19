@@ -17,11 +17,6 @@ upload_router = APIRouter(
     tags=["Files"],
 )
 
-debug_router = APIRouter(
-    prefix="/debug",
-    tags=["Debug"],
-)
-
 main_router = APIRouter(
     prefix="/main",
     tags=["Main"]
@@ -114,10 +109,6 @@ async def start():
     return
 
 
-# Передать в очередь только на диаризацию.
-# Передать task_id, получить из базы путь к файлу,
-# передать в очередь task_id и путь к файлу, агент конкретной задачи
-# пишет путь файла в бд.
 @main_router.post("/start_diarization")
 async def start_diarization(task_id: int,
                             session: AsyncGenerator = Depends(get_async_session)):
@@ -127,9 +118,8 @@ async def start_diarization(task_id: int,
         query = select(tasks).where(tasks.id == task_id)
         result = await session.execute(query)
         task = result.fetchone()[0]
+        # проверить что не None, иначе вернуть сообщение чтобы загрузили audio
         file_path = task.audio_path
-
-        await send_message_to_queue(task_id, file_path, "DiarizationQueue")
 
         stmt = update(tasks).where(tasks.id == task_id).values(
             status=Status.AUDIO_DIARIZATION_PROCESSING.value)
@@ -142,6 +132,8 @@ async def start_diarization(task_id: int,
     except Exception as e:
         final_message["status"] = Status.ERROR
         final_message["message"]["info"] = f"{e}"
+    else:
+        await send_message_to_queue(task_id, file_path, "DiarizationQueue")
 
     return final_message
 
@@ -150,14 +142,53 @@ async def start_diarization(task_id: int,
 # Ориентируемся по статусам.
 # все тоже самое что и в методе выше.
 @main_router.post("/start_create_report")
-async def start_create_report():
-    return
+async def start_create_report(task_id: int,
+                              session: AsyncGenerator = Depends(get_async_session)):
+
+    final_message["message"]["task_id"] = task_id
+
+    try:
+        query = select(tasks).where(tasks.id == task_id)
+        result = await session.execute(query)
+        task = result.fetchone()[0]
+        # Проверить что не None, иначе вернуть сообщение чтобы загрузили text
+        file_path = task.text_path
+
+        stmt = update(tasks).where(tasks.id == task_id).values(
+            status=Status.AUDIO_DIARIZATION_PROCESSING.value)
+        await session.execute(stmt)
+        await session.commit()
+
+        final_message["status"] = Status.LLM_ANALYSIS_PROCESSING
+        final_message["message"]["info"] = "Creating report"
+
+    except Exception as e:
+        final_message["status"] = Status.ERROR
+        final_message["message"]["info"] = f"{e}"
+    else:
+        await send_message_to_queue(task_id, file_path, "LLMQueue")
+
+    return final_message
 
 
-# ручки для тестов
+@main_router.get("/task")
+async def get_task(task_id: int,
+                   session: AsyncGenerator = Depends(get_async_session)):
+    try:
+        query = select(tasks).where(tasks.id == task_id)
+        result = await session.execute(query)
+        task = result.fetchone()[0]
+        task_dict = dict(task._mapping)
 
-@debug_router.post("/create_task")
-async def create_task(task: Task,
-                      session: AsyncGenerator = Depends(get_async_session)):
+        final_message["status"] == task_dict.pop('status')
+        final_message["message"]["task_id"] = task_dict.pop('id')
+        final_message["message"]["info"] = task_dict
 
-    return {"status": task.status, "message": task.dict()}
+    except Exception as e:
+        final_message["status"] = Status.ERROR
+        final_message["message"]["task_id"] = task_id
+        final_message["message"]["info"] = f"{e}"
+
+    return final_message
+
+# также задачи по юзеру когда сделаю юзеров! ⏪
