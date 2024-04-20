@@ -1,14 +1,14 @@
 from database.database import create_db
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from .routers import debug_router, upload_router, main_router
+from .routers import tasks_router, upload_router, main_router
 
 
 app = FastAPI()
 
-app.include_router(debug_router)
-app.include_router(upload_router)
 app.include_router(main_router)
+app.include_router(upload_router)
+app.include_router(tasks_router)
 
 app.mount("/media", StaticFiles(directory="static"), name="media")
 

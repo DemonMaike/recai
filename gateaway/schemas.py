@@ -10,3 +10,6 @@ class Task(BaseModel):
     audio_path: Optional[str] = None
     text_path: Optional[str] = None
     report_path: Optional[str] = None
+
+    class Config:
+        use_enum_values = True
