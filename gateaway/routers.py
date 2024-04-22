@@ -6,8 +6,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy import insert, select, update, delete
 import aiofiles
 
-from database.database import get_async_session
-from database.models import Task as tasks
+from database import get_async_session
+from models import Task as tasks
 from .schemas import Task
 from .utils import Status, File, final_message
 from rabbitmq.utils import send_message_to_queue
