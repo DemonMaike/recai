@@ -6,7 +6,6 @@ import json
 
 
 async def get_rabbit_connection():
-    # Замените настройки подключения на свои
     return await aio_pika.connect_robust("amqp://admin:admin@localhost/")
 
 
