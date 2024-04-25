@@ -1,21 +1,20 @@
-from datetime import date, datetime
+from datetime import date
 from typing import AsyncGenerator
 import copy
-import uuid
 
-from fastapi import APIRouter, Depends, File as F, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File as F, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import EmailStr
 from sqlalchemy import insert, select, update, delete
 import aiofiles
 
-from auth.schemas import UserRead
-from database import get_async_session
-from models import Task as tasks, User
-from .schemas import Task
-from .utils import Status, File, final_message
+from gateaway.schemas import Task
+from gateaway.utils import Status, File, final_message
+from gateaway.auth.schemas import UserRead
+from gateaway.auth.settings import current_user
+from database.utils import get_async_session
+from database.models import Task as tasks, User
 from rabbitmq.utils import send_message_to_queue
-from dependencies import current_user, admin
 
 
 upload_router = APIRouter(
@@ -38,8 +37,9 @@ user_router = APIRouter(
     tags=["User"],
 )
 
-
 # может объеденить и внутри метода upload проверять аудио или текст ⏪
+# пройтись по поинтам и добавить проверку по статусу, где то может быть уже выполнена задача,
+# а она все равно выполнится
 
 
 @upload_router.post("/audio")
@@ -130,13 +130,6 @@ async def upload_text(file: UploadFile = F(...),
     return local_final_message
 
 
-# Cмотри ниже. Отправить в отдельную очередь чтобы агент следил
-# за статусом.
-@main_router.post("/start")
-async def start():
-    return
-
-
 @main_router.post("/start_diarization")
 async def start_diarization(task_id: int,
                             session: AsyncGenerator = Depends(get_async_session)):
@@ -149,7 +142,9 @@ async def start_diarization(task_id: int,
         query = select(tasks).where(tasks.id == task_id)
         result = await session.execute(query)
         task = result.fetchone()[0]
-        # проверить что не None, иначе вернуть сообщение чтобы загрузили audio
+        if not task:
+            raise HTTPException(status_code=400,
+                                detail="File is not upload, please upload file")
         file_path = task.audio_path
 
         stmt = update(tasks).where(tasks.id == task_id).values(
@@ -165,14 +160,12 @@ async def start_diarization(task_id: int,
         local_final_message["message"]["info"] = f"{e}"
 
     else:
-        await send_message_to_queue(task_id, file_path, "DiarizationQueue")
+        way = ["DiarizationQueue", "AnswerQueue"]
+        await send_message_to_queue(task_id, way, file_path, "MainQueue")
 
     return local_final_message
 
 
-# передать в очередь только для подготовки репорта.
-# Ориентируемся по статусам.
-# все тоже самое что и в методе выше.
 @main_router.post("/start_create_report")
 async def start_create_report(task_id: int,
                               session: AsyncGenerator = Depends(get_async_session)):
@@ -185,7 +178,9 @@ async def start_create_report(task_id: int,
         query = select(tasks).where(tasks.id == task_id)
         result = await session.execute(query)
         task = result.fetchone()[0]
-        # Проверить что не None, иначе вернуть сообщение чтобы загрузили text
+        if not task:
+            raise HTTPException(status_code=400,
+                                detail="File is not upload, please upload file")
         file_path = task.text_path
 
         stmt = update(tasks).where(tasks.id == task_id).values(
@@ -193,18 +188,27 @@ async def start_create_report(task_id: int,
         await session.execute(stmt)
         await session.commit()
 
-        local_final_message["status"] = Status.LLM_ANALYSIS_PROCESSING.value
         local_final_message["message"]["info"] = "Creating report"
 
     except Exception as e:
         local_final_message["status"] = Status.ERROR.value
         local_final_message["message"]["info"] = f"{e}"
+
     else:
-        await send_message_to_queue(task_id, file_path, "LLMQueue")
+        if task.status == Status.TEXT_RECEIVED.value or Status.DIARIZATION_COMPLETED.value:
+            local_final_message["status"] = Status.LLM_ANALYSIS_PROCESSING.value
+            way = ["LLMQueue", "AnswerQueue"]
+
+        else:
+            local_final_message["status"] = Status.AUDIO_DIARIZATION_PROCESSING.value
+            way = ["DiarizationQueue", "LLMQueue", "AnswerQueue"]
+
+        await send_message_to_queue(task_id, way, file_path, "MainQueue")
 
     return local_final_message
 
-# На данный момент видно пароль, хоть и в хешшированнном виде, возможно скорректироватть ⏪
+
+# На данный момент видно пароль, хоть и в хешшированнном виде, возможно скорректировать ⏪
 
 
 @admin_router.get("/user/{email}")
@@ -373,7 +377,7 @@ async def get_tasks_filter_user(email: EmailStr,
 @admin_router.get("/tasks/date")
 async def get_tasks_filter_date(start_date: date,
                                 end_date: date,
-                                session: AsyncGenerator = Depends(get_async_session)):  # получить задачи по дата начало/конец
+                                session: AsyncGenerator = Depends(get_async_session)):
 
     if start_date > end_date:
         raise HTTPException(status_code=400,
@@ -397,9 +401,6 @@ async def get_tasks_filter_date(start_date: date,
         local_final_message["message"]["info"] = f"{e}"
 
     return local_final_message
-
-# Подумать как польучать пользователя динамически из данных авторизации, использования запроса на прямую и расшифровывать куки,
-# или что то подобное ⏪
 
 
 @user_router.get("/tasks")
@@ -425,7 +426,6 @@ async def get_user_tasks(user: UserRead = Depends(current_user),
     return local_final_message
 
 
-# юзер может удалить свою задачу, но проверять что это задача текущего юзера.
 @user_router.delete("/task")
 async def del_user_task(task_id: int,
                         user: UserRead = Depends(current_user),

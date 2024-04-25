@@ -1,12 +1,13 @@
-from database import create_db
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
+
+from database.utils import create_db
 from gateaway.routers import (upload_router, main_router,
                               admin_router, user_router)
-from auth.utils import auth_backand
-from auth.schemas import UserRead, UserCreate
-from dependencies import fastapi_users, current_user, admin
+from gateaway.auth.utils import auth_backand
+from gateaway.auth.schemas import UserRead, UserCreate
+from gateaway.auth.settings import fastapi_users, current_user, admin
 
 
 app = FastAPI()

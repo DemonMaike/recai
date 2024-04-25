@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  db:
+    build: ./database
+    volumes:
+      - ./database/volume:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+    ports:
+      - "40001:5432"
+
+  queue:
+    build: ./rabbitmq
+    volumes:
+      - ./volumes/app2:/
+    ports:
+      - "40002:15672"
+      - "40003:5672"
+    env_file:
+      - ./.env
+
+  gateaway:
+    build: ./database
+    volumes:
+      - ./gateaway/volume:/
+    env_file:
+      - ./.env
+    ports:
+      - "40004:5432"
+

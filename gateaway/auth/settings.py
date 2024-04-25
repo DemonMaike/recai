@@ -1,12 +1,10 @@
-
-
 import uuid
 from fastapi_users import FastAPIUsers
 
-from auth.manager import get_user_manager
-from auth.utils import auth_backand
+from gateaway.auth.manager import get_user_manager
+from gateaway.auth.utils import auth_backand
 
-from models import User
+from database.models import User
 
 
 fastapi_users = FastAPIUsers[User, uuid.UUID](

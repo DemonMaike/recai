@@ -5,13 +5,13 @@ from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users.db import SQLAlchemyUserDatabase
 
-from config import JWT_SECRET
+from config import RESET_PASS_SECRET
 
-from models import User
-from database import AsyncSession, get_async_session
+from database.models import User
+from database.utils import AsyncSession, get_async_session
 
 
-SECRET = JWT_SECRET
+SECRET = RESET_PASS_SECRET
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
