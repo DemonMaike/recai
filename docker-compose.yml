@@ -28,3 +28,10 @@ services:
     ports:
       - "40004:5432"
 
+  whisper:
+    build: ./whisper/whisperX-api
+    ports:
+      - "40005:5000"
+    depends_on:
+
+
