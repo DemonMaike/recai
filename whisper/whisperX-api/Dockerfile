@@ -8,12 +8,6 @@ COPY environment.yaml /app
 RUN apt update && apt install -y ffmpeg
 RUN conda env create -f /app/environment.yaml
 
-# Trigger WhisperX to download necessary models, so we can embed them in the image
-ARG hftoken
-COPY audio_nl.mp3 audio_en.mp3 /app
-RUN /bin/bash -c "source activate whisperx && cd /app; whisperx --hf_token $hftoken --model large-v2 --diarize --compute_type float32 --lang nl ./audio_nl.mp3"
-RUN /bin/bash -c "source activate whisperx && cd /app; whisperx --hf_token $hftoken --model large-v2 --diarize --compute_type float32 --lang en ./audio_en.mp3"
-
 # Copy the app itself
 RUN mkdir -p /app/uploads
 COPY app.py config.py /app

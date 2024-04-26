@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Копируем файлы зависимостей
 COPY requirements.txt .
-COPY database/ .
+COPY ../database/ .
+COPY ../.env .
+
 
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
