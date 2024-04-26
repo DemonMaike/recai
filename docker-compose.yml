@@ -1,13 +1,13 @@
 version: '3.8'
 services:
   db:
-    build: ./database
+    image: postgres:latest
     volumes:
       - ./database/volume:/var/lib/postgresql/data
     env_file:
       - ./.env
     ports:
-      - "40001:5432"
+      - "127.0.0.1:40001:5432"
 
   queue:
     build: ./rabbitmq
@@ -15,7 +15,7 @@ services:
       - ./volumes/app2:/
     ports:
       - "40002:15672"
-      - "40003:5672"
+      - "127.0.0.1:40003:5672"
     env_file:
       - ./.env
 
