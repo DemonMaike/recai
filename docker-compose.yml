@@ -31,4 +31,4 @@ services:
   whisper:
     build: ./whisper/whisperX-api
     ports:
-      - "40005:5000"
+      - "127.0.0.1:40005:5000"
