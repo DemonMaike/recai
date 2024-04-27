@@ -17,7 +17,7 @@ async def handle_task(session, file_path):
         'file',
         open(file_path, 'rb'),
         filename=file_name,
-        content_type=f"audio/{ext}")
+        content_type=f"audio/{ext.lstrip('.')}")
 
     try:
         # Отправляем задачу на один из контейнеров
