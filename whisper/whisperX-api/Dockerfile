@@ -7,7 +7,7 @@ WORKDIR /app
 COPY environment.yaml /app
 RUN apt update && apt install -y ffmpeg
 RUN conda env create -f /app/environment.yaml
-
+ARG hftoken
 # Copy the app itself
 RUN mkdir -p /app/uploads
 COPY app.py config.py ./
