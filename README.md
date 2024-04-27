@@ -1,20 +1,25 @@
-Настройки.
+git clone
 
-1) Необходимо запольнить .env с параметрами:
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
 
-DATABASE_NAME
-DATABASE_USER
-DATABASE_PASS
-DATABASE_PORT
-DATABASE_HOST
+sudo docker build rabbitmq -t rabbit:castom
+sudo docker run -d --rm --name postgres -p 127.0.0.1:5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSSWORD=postgres postgres:latest
+sudo docker run -d --rm --name rabbit -p 40002:15672 -p 127.0.0.1:5672:5672 -e RABBIT_DEFAULT_USER=admin -e RABBIT_DEFAULT_PASSWORD=admin rabbit:castom
 
-JWT_SECRET
-RESET_PASS_SECRET
+uvicorn gateaway.main:app --host 0.0.0.0 --port 40001
 
-RABBIT_ADMIN=admin
-RABBIT_ADMIN_PASS=admin
-Так как в кастомном контейнере ребита вшит пользователь admin:admin с правами админа, далее можно переопределить, если нужно.
+within other windows:
+python main_agent.py
+python wisper_agent.py
 
+finally result global:
 
+40001 - fastapi interface
+40002 - rabbitmq managment with admin user admin:admin, if need update base admin, change rabbitmq/settings/definitions.json
 
-
+local
+5432 - postgres
+5672 - rabbitmq queue default exchange 
+agent for main and whisper clasters.
