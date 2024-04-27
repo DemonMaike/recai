@@ -1,78 +1,60 @@
+# Обрабатываем одно сообщение за раз. Если мы хотим обработать сразу 2 или 3, то мы меняем
+# длину списка задач len(tasks) на нужное значение и можем выполнять обрабтку.
 import asyncio
-import json
-import aiohttp  # Для отправки HTTP запросов в асинхронном режиме
-import mimetypes
-import aiofiles
-
-from aio_pika import connect, IncomingMessage
-from aio_pika.exceptions import QueueEmpty, MessageProcessError
-from config import RABBIT_ADMIN, RABBIT_ADMIN_PASS, RABBIT_HOST, RABBIT_QUEUE_PORT
+import os
+import aiohttp
+import pika
+from pika.adapters.blocking_connection import BlockingChannel
 
 
-# дальше для обработки по 2-3 сообщения можем добавить семафоры.
+async def handle_task(session, file_path):
+    file_name = os.path.split(file_path)[-1]
+    # нужно определять mime-type через mimetypes
+    _, ext = os.path.splitext(file_name)
+
+    data = aiohttp.FormData()
+    data.add_field(
+        'file',
+        open(file_path, 'rb'),
+        filename=file_name,
+        content_type=f"audio/{ext}")
+
+    try:
+        # Отправляем задачу на один из контейнеров
+        async with session.post('http://127.0.0.1:5000/transcribe', data=data) as response:
+            if response.status == 200:
+                result = await response.json()
+                print("Результат транскрибации: ", result)
+            else:
+                print("Ошибка при обработке запроса.")
+    except aiohttp.ClientError as e:
+        print("Ошибка соединения: ", e)
+
+
 async def main():
-    connection = await connect(f"amqp://{RABBIT_ADMIN}:{RABBIT_ADMIN_PASS}@{RABBIT_HOST}:{RABBIT_QUEUE_PORT}/")
-    channel = await connection.channel()  # Создаем канал связи
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters('localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='DiarizationQueue')
 
-    diarize_queue = await channel.declare_queue('DiarizationQueue', durable=True)
-    semaphore = asyncio.Semaphore(1)
-    url = "localhost:5000/transcribe"
+    tasks = []
 
-    async def process_message(message: IncomingMessage):
-        async with semaphore:
-            async with message.process():
-                data = json.loads(message.body.decode())
-                try:
-                    file_path = data['file_path']
-                    file_name = file_path.split("/")[-1]
-                    out_file_path = f"static/text/{file_name.rstrip('.').txt}"
-                    mime = mimetypes.guess_type(file_name)
+    async with aiohttp.ClientSession() as session:
+        for method_frame, properties, body in channel.consume('DiarizationQueue'):
+            # Запускаем обработку задачи асинхронно
+            task = asyncio.create_task(handle_task(session, body['file_path']))
+            tasks.append(task)
+            if len(tasks) >= 1:  # Предполагаем, что у нас есть 1 контейнер
+                break
 
-                    # Отправляем данные в контейнер и ждем ответа
-                    async with aiohttp.ClientSession() as session:
-                        try:
-                            with open(file_path, 'rb') as file:
-                                data = aiohttp.FormData()
-                                data.add_field('audio',
-                                               file,
-                                               filename=file_name,
-                                               content_type=mime)
+        # Ожидаем завершения всех задач
+        await asyncio.gather(*tasks)
 
-                            response = await session.post(url, data=data)
-                            response_json = await response.json()
+        # Подтверждаем обработку сообщений
+        for task in tasks:
+            channel.basic_ack(delivery_tag=task.result())
 
-                            # сохранить файл, асинхронно
-                            async with aiofiles.open(out_file_path, "w") as f:
-                                for segment in response_json["segments"]:
-                                    speaker = segment.get(
-                                        "speaker", "Unknown Speaker")
-                                    start_time = segment["start"]
-                                    finish_time = segment["end"]
-                                    text = segment["text"].strip()
-                                    # Формируем строку для каждого сегмента и записываем её в файл
-                                    await f.write(f"{speaker}\n{start_time}...{finish_time}\n{text}\n\n")
-
-                            await message.ack()
-                        except Exception as e:
-                            print("Ошибка при отправке запроса:", e)
-                            await message.nack(requeue=True)
-
-                # Получение следующего сообщения вручную
-                except Exception as e:
-                    print(f"Ошибка {e}")
-
-    async def consume_messages():
-        while True:
-            try:
-                message = await diarize_queue.get(no_ack=False)
-                asyncio.create_task(process_message(message))
-            except QueueEmpty:
-                pass
-            except MessageProcessError:
-                pass
-
-    print("Агент диаризацции запущен и слушает очередь 'DiarizationQueue'.")
-    await consume_messages()  # Начинаем обработку первого сообщения
+    connection.close()
 
 if __name__ == '__main__':
     asyncio.run(main())
