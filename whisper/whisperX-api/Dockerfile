@@ -10,7 +10,7 @@ RUN conda env create -f /app/environment.yaml
 
 # Copy the app itself
 RUN mkdir -p /app/uploads
-COPY app.py config.py /app
+COPY app.py config.py .
 
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
