@@ -4,7 +4,8 @@ from config import JWT_SECRET
 
 
 SECRET = JWT_SECRET
-cookie_transport = CookieTransport()
+cookie_transport = CookieTransport(cookie_secure=False,
+                                   cookie_httponly=True)
 
 
 def get_jwt_strategy() -> JWTStrategy:
