@@ -2,6 +2,8 @@
 # длину списка задач len(tasks) на нужное значение и можем выполнять обрабтку.
 import asyncio
 import os
+import json
+
 import aiohttp
 import pika
 from pika.adapters.blocking_connection import BlockingChannel
@@ -32,17 +34,18 @@ async def handle_task(session, file_path):
 
 
 async def main():
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters('localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', 5672, '/', pika.PlainCredentials("admin", "admin")))
     channel = connection.channel()
-    channel.queue_declare(queue='DiarizationQueue')
+    channel.queue_declare(queue='DiarizationQueue', durable=True)
 
     tasks = []
 
     async with aiohttp.ClientSession() as session:
         for method_frame, properties, body in channel.consume('DiarizationQueue'):
+            body_decoded = body.decode("utf-8")
+            body_data = json.loads(body_decoded)
             # Запускаем обработку задачи асинхронно
-            task = asyncio.create_task(handle_task(session, body['file_path']))
+            task = asyncio.create_task(handle_task(session, body_data['file_path']))
             tasks.append(task)
             if len(tasks) >= 1:  # Предполагаем, что у нас есть 1 контейнер
                 break
