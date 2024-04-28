@@ -38,7 +38,7 @@ async def handle_task(session, file_path):
 
     try:
         # Отправляем задачу в контейнер, в дальнейшем должен быть хаб.
-        async with session.post('http://127.0.0.1:5000/transcribe', data=data) as response:
+        async with session.post('http://127.0.0.1:5000/transcribe', data=data, timeout=360) as response:
             if response.status == 200:
                 result = await response.json()
 
@@ -62,6 +62,7 @@ async def main():
             method_frame, properties, body = next(channel.consume(
                 'DiarizationQueue', inactivity_timeout=None))
             if method_frame:
+                print("Recived message. Working...")
                 body_decoded = body.decode("utf-8")
                 body_data = json.loads(body_decoded)
 
