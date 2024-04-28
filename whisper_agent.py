@@ -34,7 +34,8 @@ async def handle_task(session, file_path):
 
 
 async def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', 5672, '/', pika.PlainCredentials("admin", "admin")))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(
+        'localhost', 5672, '/', pika.PlainCredentials("admin", "admin")))
     channel = connection.channel()
     channel.queue_declare(queue='DiarizationQueue', durable=True)
 
@@ -45,17 +46,18 @@ async def main():
             body_decoded = body.decode("utf-8")
             body_data = json.loads(body_decoded)
             # Запускаем обработку задачи асинхронно
-            task = asyncio.create_task(handle_task(session, body_data['file_path']))
-            tasks.append(task)
+            task = asyncio.create_task(
+                handle_task(session, body_data['file_path']))
+            tasks.append((task, method_frame.delivery_tag))
             if len(tasks) >= 1:  # Предполагаем, что у нас есть 1 контейнер
                 break
 
         # Ожидаем завершения всех задач
-        await asyncio.gather(*tasks)
+        results = await asyncio.gather(*[t[0] for t in tasks])
 
         # Подтверждаем обработку сообщений
-        for task in tasks:
-            channel.basic_ack(delivery_tag=task.result())
+        for result, tag in zip(results, [t[1] for t in tasks]):
+            channel.basic_ack(delivery_tag=tag)
 
     connection.close()
 
