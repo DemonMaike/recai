@@ -6,13 +6,28 @@ import json
 
 import aiohttp
 import pika
-from pika.adapters.blocking_connection import BlockingChannel
+import aiofiles
+
+
+async def create_file_from_whisper_container(path, content):
+    async with aiofiles.open(path, "w") as file:
+        output_format = []
+        for sent in content["segments"]:
+            speaker = sent.get("speaker", "Unknown Speaker")
+            started = sent["start"]
+            finised = sent["end"]
+            text = sent["text"].strip()
+            output_format.append(
+                f"{speaker}\n{started} ... {finised}\n{text}\n")
+
+        await file.write("\n".join(output_format))
 
 
 async def handle_task(session, file_path):
     file_name = os.path.split(file_path)[-1]
     # нужно определять mime-type через mimetypes
-    _, ext = os.path.splitext(file_name)
+    base_name, ext = os.path.splitext(file_name)
+    out_file_path = f"static/text/{base_name}.txt"
 
     data = aiohttp.FormData()
     data.add_field(
@@ -22,11 +37,14 @@ async def handle_task(session, file_path):
         content_type=f"audio/{ext.lstrip('.')}")
 
     try:
-        # Отправляем задачу на один из контейнеров
+        # Отправляем задачу в контейнер, в дальнейшем должен быть хаб.
         async with session.post('http://127.0.0.1:5000/transcribe', data=data) as response:
             if response.status == 200:
                 result = await response.json()
-                print("Результат транскрибации: ", result)
+
+                await create_file_from_whisper_container(out_file_path, result)
+                print("Файл создан")
+
             else:
                 print("Ошибка при обработке запроса.")
     except aiohttp.ClientError as e:
@@ -39,27 +57,24 @@ async def main():
     channel = connection.channel()
     channel.queue_declare(queue='DiarizationQueue', durable=True)
 
-    tasks = []
-
     async with aiohttp.ClientSession() as session:
-        for method_frame, properties, body in channel.consume('DiarizationQueue'):
-            body_decoded = body.decode("utf-8")
-            body_data = json.loads(body_decoded)
-            # Запускаем обработку задачи асинхронно
-            task = asyncio.create_task(
-                handle_task(session, body_data['file_path']))
-            tasks.append((task, method_frame.delivery_tag))
-            if len(tasks) >= 1:  # Предполагаем, что у нас есть 1 контейнер
-                break
+        while True:
+            method_frame, properties, body = next(channel.consume(
+                'DiarizationQueue', inactivity_timeout=None))
+            if method_frame:
+                body_decoded = body.decode("utf-8")
+                body_data = json.loads(body_decoded)
 
-        # Ожидаем завершения всех задач
-        results = await asyncio.gather(*[t[0] for t in tasks])
+                task = asyncio.create_task(
+                    handle_task(session, body_data['file_path']))
 
-        # Подтверждаем обработку сообщений
-        for result, tag in zip(results, [t[1] for t in tasks]):
-            channel.basic_ack(delivery_tag=tag)
+                await task
 
-    connection.close()
+                # По хорошему все же надо тоже перевести в асинхронку + разделить создание текста и изменение в бд, может через селери делать как отдельный процесс.
+                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+            else:
+                # Если время ожидания истекло, делаем небольшую паузу перед следующей итерацией
+                await asyncio.sleep(1)
 
 if __name__ == '__main__':
     asyncio.run(main())
