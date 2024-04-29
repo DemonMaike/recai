@@ -1,49 +1,46 @@
-# Обрабатываем одно сообщение за раз. Если мы хотим обработать сразу 2 или 3, то мы меняем
-# длину списка задач len(tasks) на нужное значение и можем выполнять обрабтку.
-import asyncio
 import os
+import asyncio
 import json
 
+from docx import Document
 import aiohttp
 import pika
 import aiofiles
 
 
-async def create_file_from_whisper_container(path, content):
-    async with aiofiles.open(path, "w") as file:
-        output_format = []
-        for sent in content["segments"]:
-            speaker = sent.get("speaker", "Unknown Speaker")
-            started = sent["start"]
-            finised = sent["end"]
-            text = sent["text"].strip()
-            output_format.append(
-                f"{speaker}\n{started} ... {finised}\n{text}\n")
+UPLOAD_FOLDER = "static/report"
 
-        await file.write("\n".join(output_format))
+
+def create_docx(filename: str, text: str) -> None:
+    out_path = os.path.join(UPLOAD_FOLDER, filename)
+    doc = Document()
+    doc.add_paragrah(text)
+    doc.save(out_path)
+    print(out_path, " created")
 
 
 async def handle_task(session, file_path):
+    loop = asyncio.get_event_loop()
     file_name = os.path.split(file_path)[-1]
     # нужно определять mime-type через mimetypes
     base_name, ext = os.path.splitext(file_name)
-    out_file_path = f"static/text/{base_name}.txt"
+    out_name = base_name + ".docx"
 
     data = aiohttp.FormData()
     data.add_field(
         'file',
         open(file_path, 'rb'),
         filename=file_name,
-        content_type=f"audio/{ext.lstrip('.')}")
+        content_type=f"text/plain")
 
     try:
         # Отправляем задачу в контейнер, в дальнейшем должен быть хаб.
-        async with session.post('http://127.0.0.1:5000/transcribe',
+        async with session.post('http://127.0.0.1:5001/create_report',
                                 data=data, timeout=500) as response:
             if response.status == 200:
                 result = await response.json()
 
-                await create_file_from_whisper_container(out_file_path, result)
+                await loop.run_in_executor(None, create_docx, out_name, result)
                 print("Файл создан")
 
             else:
@@ -56,12 +53,12 @@ async def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters(
         'localhost', 5672, '/', pika.PlainCredentials("admin", "admin")))
     channel = connection.channel()
-    channel.queue_declare(queue='DiarizationQueue', durable=True)
+    channel.queue_declare(queue='LLMQueue', durable=True)
 
     async with aiohttp.ClientSession() as session:
         while True:
             method_frame, properties, body = next(channel.consume(
-                'DiarizationQueue', inactivity_timeout=None))
+                'LLMQueue', inactivity_timeout=None))
             if method_frame:
                 print("Recived message. Working...")
                 body_decoded = body.decode("utf-8")
@@ -78,6 +75,5 @@ async def main():
                 # Если время ожидания истекло, делаем небольшую паузу перед следующей итерацией
                 await asyncio.sleep(1)
 
-if __name__ == '__main__':
-    print("слушаю очередь DiarizationQueue")
+if __name__ == "__main__":
     asyncio.run(main())
