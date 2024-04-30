@@ -69,11 +69,23 @@ async def main():
 
                 task = asyncio.create_task(
                     handle_task(session, body_data['file_path']))
-
                 await task
-
                 # По хорошему все же надо тоже перевести в асинхронку + разделить создание текста и изменение в бд, может через селери делать как отдельный процесс.
                 channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
+                # изметить статус в бд, переложить сообщение в c новым way в main
+                body_data["way"].remove("DiarizationQueue")
+                updated_body = json.dumps(body_data)
+                channel.basic_publish(exchange='',
+                                      routing_key='MainQueue',
+                                      body=updated_body,
+                                      properties=pika.BasicProperties(
+                                          delivery_mode=2,
+                                      ))
+                print("Сообщение отправлено в MainQueue")
+
+                # Записать новый статус в бд
+
             else:
                 # Если время ожидания истекло, делаем небольшую паузу перед следующей итерацией
                 await asyncio.sleep(1)
