@@ -25,3 +25,8 @@ RABBIT_MANAGMENT_PORT = os.getenv("RABBIT_MANAGMENT_PORT")
 # whisper env
 
 # llm env
+
+
+# Telegram channel
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+LOG_CHANNEL = os.getenv("ID_LOG_CHANNEL")

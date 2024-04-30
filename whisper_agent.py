@@ -45,6 +45,7 @@ async def handle_task(session, file_path):
 
                 await create_file_from_whisper_container(out_file_path, result)
                 print("Файл создан")
+                return out_file_path
 
             else:
                 print("Ошибка при обработке запроса.")
@@ -69,12 +70,14 @@ async def main():
 
                 task = asyncio.create_task(
                     handle_task(session, body_data['file_path']))
-                await task
+                out_path = await task
                 # По хорошему все же надо тоже перевести в асинхронку + разделить создание текста и изменение в бд, может через селери делать как отдельный процесс.
                 channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
-                # изметить статус в бд, переложить сообщение в c новым way в main
+                # изменить тело сообщения согласно текущему процессу.
                 body_data["way"].remove("DiarizationQueue")
+                body_data["file_path"] = out_path
+
                 updated_body = json.dumps(body_data)
                 channel.basic_publish(exchange='',
                                       routing_key='MainQueue',
