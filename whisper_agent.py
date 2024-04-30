@@ -5,7 +5,7 @@ import os
 import json
 
 import aiohttp
-import pika
+import aio_pika
 import aiofiles
 
 
@@ -54,44 +54,40 @@ async def handle_task(session, file_path):
 
 
 async def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        'localhost', 5672, '/', pika.PlainCredentials("admin", "admin")))
-    channel = connection.channel()
-    channel.queue_declare(queue='DiarizationQueue', durable=True)
+    connection = await aio_pika.connect_robust(
+        "amqp://admin:admin@localhost/", loop=asyncio.get_event_loop()
+    )
 
-    async with aiohttp.ClientSession() as session:
-        while True:
-            method_frame, properties, body = next(channel.consume(
-                'DiarizationQueue', inactivity_timeout=None))
-            if method_frame:
-                print("Recived message. Working...")
-                body_decoded = body.decode("utf-8")
-                body_data = json.loads(body_decoded)
+    async with connection:
+        channel = await connection.channel()  # Создание канала
+        await channel.set_qos(prefetch_count=1)
+        queue = await channel.declare_queue('DiarizationQueue', durable=True)
 
-                task = asyncio.create_task(
-                    handle_task(session, body_data['file_path']))
-                out_path = await task
-                # По хорошему все же надо тоже перевести в асинхронку + разделить создание текста и изменение в бд, может через селери делать как отдельный процесс.
+        async with aiohttp.ClientSession() as session:
+            async for message in queue:
+                async with message.process():
+                    print("Received message. Working...")
+                    body_data = json.loads(message.body.decode())
 
-                # изменить тело сообщения согласно текущему процессу.
-                body_data["way"].remove("DiarizationQueue")
-                body_data["file_path"] = out_path
+                    task = asyncio.create_task(
+                        handle_task(session, body_data['file_path']))
+                    out_path = await task
 
-                updated_body = json.dumps(body_data)
-                channel.basic_publish(exchange='',
-                                      routing_key='MainQueue',
-                                      body=updated_body,
-                                      properties=pika.BasicProperties(
-                                          delivery_mode=2,
-                                      ))
-                print("Сообщение отправлено в MainQueue")
-                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-                # Записать новый статус в бд
+                    # Обновляем данные сообщения
+                    body_data["way"].remove("DiarizationQueue")
+                    body_data["file_path"] = out_path
+                    updated_body = json.dumps(body_data)
 
-            else:
-                # Если время ожидания истекло, делаем небольшую паузу перед следующей итерацией
-                await asyncio.sleep(1)
+                    # Отправка сообщения обратно в MainQueue
+                    await channel.default_exchange.publish(
+                        aio_pika.Message(
+                            body=updated_body.encode(),
+                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+                        ),
+                        routing_key='MainQueue'
+                    )
+                    print("Сообщение отправлено в MainQueue")
 
 if __name__ == '__main__':
-    print("слушаю очередь DiarizationQueue")
+    print("Слушаю очередь DiarizationQueue")
     asyncio.run(main())
