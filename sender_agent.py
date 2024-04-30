@@ -26,9 +26,9 @@ async def main():
 
             if "file_path" in data and data["file_path"] is not None:
                 loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, send_telegram_document, data['file_path'])
+                respone = await loop.run_in_executor(None, send_telegram_document, data['file_path'])
                 print(
-                    f"информация о задаче {data['task_id']} направлена в telegram")
+                    f"Ответ телеграм сервера:\n{respone}")
             else:
                 print("Проблема с file_path")
 
