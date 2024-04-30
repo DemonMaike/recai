@@ -29,4 +29,4 @@ RABBIT_MANAGMENT_PORT = os.getenv("RABBIT_MANAGMENT_PORT")
 
 # Telegram channel
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-LOG_CHANNEL = os.getenv("ID_LOG_CHANNEL")
+LOG_CHANNEL = os.getenv("LOG_CHANNEL")
