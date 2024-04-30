@@ -22,11 +22,14 @@ async def main():
     async def on_message(message: IncomingMessage):
         async with message.process():
             data = json.loads(message.body.decode())
+            print(data)
 
-            await send_telegram_document(data['file_path'])
-
-            print(
-                f"информация о задаче {data['task_id']} направлена в telegram")
+            if "file_path" in data and data["file_path"] is not None:
+                await send_telegram_document(data['file_path'])
+                print(
+                    f"информация о задаче {data['task_id']} направлена в telegram")
+            else:
+                print("Проблема с file_path")
 
             # Изменить в бд статус.
 
