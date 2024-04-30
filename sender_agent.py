@@ -25,7 +25,8 @@ async def main():
             print(data)
 
             if "file_path" in data and data["file_path"] is not None:
-                await send_telegram_document(data['file_path'])
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, send_telegram_document, data['file_path'])
                 print(
                     f"информация о задаче {data['task_id']} направлена в telegram")
             else:
