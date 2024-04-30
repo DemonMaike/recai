@@ -72,7 +72,6 @@ async def main():
                     handle_task(session, body_data['file_path']))
                 out_path = await task
                 # По хорошему все же надо тоже перевести в асинхронку + разделить создание текста и изменение в бд, может через селери делать как отдельный процесс.
-                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
                 # изменить тело сообщения согласно текущему процессу.
                 body_data["way"].remove("DiarizationQueue")
@@ -86,7 +85,7 @@ async def main():
                                           delivery_mode=2,
                                       ))
                 print("Сообщение отправлено в MainQueue")
-
+                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
                 # Записать новый статус в бд
 
             else:
