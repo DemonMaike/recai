@@ -87,6 +87,7 @@ async def main():
                         routing_key='MainQueue'
                     )
                     print("Сообщение отправлено в MainQueue")
+                    print(updated_body)
 
 if __name__ == '__main__':
     print("Слушаю очередь DiarizationQueue")
