@@ -5,7 +5,6 @@ WORKDIR /app
 
 # Install the required packages
 COPY environment.yaml /app
-RUN apt update && apt install -y ffmpeg
 RUN conda env create -f /app/environment.yaml
 ARG hftoken
 # Copy the app itself
@@ -19,4 +18,4 @@ EXPOSE 5001
 ENV FLASK_RUN_HOST=0.0.0.0
 
 # Run the command to start your app
-CMD ["/opt/conda/envs/whisperx/bin/gunicorn", "-b", "0.0.0.0:5001", "--workers", "1", "--timeout", "500", "app:app"]
+CMD ["/opt/conda/envs/mistral/bin/gunicorn", "-b", "0.0.0.0:5001", "--workers", "1", "--timeout", "500", "app:app"]
