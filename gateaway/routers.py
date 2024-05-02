@@ -43,15 +43,19 @@ user_router = APIRouter(
 
 
 @upload_router.post("/audio")
-async def upload_audio(file: UploadFile = F(...),
-                       user: UserRead = Depends(current_user),
-                       session: AsyncGenerator = Depends(get_async_session)):
+async def upload_audio(
+    file: UploadFile = F(...),
+    user: UserRead = Depends(current_user),
+    session: AsyncGenerator = Depends(get_async_session),
+):
 
     local_final_message = copy.deepcopy(final_message)
 
     if not File.is_audio(file.filename):
         local_final_message["status"] = Status.ERROR.value
-        local_final_message["message"]["info"] = "File is not audio, please give an audio"
+        local_final_message["message"][
+            "info"
+        ] = "File is not audio, please give an audio"
 
         return local_final_message
 
@@ -67,10 +71,13 @@ async def upload_audio(file: UploadFile = F(...),
                     break
                 await out_file.write(chunk)
 
-        stmt = insert(tasks).values(
-            user_id=user.id,
-            audio_path=path,
-            status=Status.AUDIO_RECEIVED.value).returning(tasks.id)
+        stmt = (
+            insert(tasks)
+            .values(
+                user_id=user.id, audio_path=path, status=Status.AUDIO_RECEIVED.value
+            )
+            .returning(tasks.id)
+        )
         result = await session.execute(stmt)
         task_id = result.fetchone()[0]
         await session.commit()
@@ -87,9 +94,11 @@ async def upload_audio(file: UploadFile = F(...),
 
 
 @upload_router.post("/text")
-async def upload_text(file: UploadFile = F(...),
-                      user: UserRead = Depends(current_user),
-                      session: AsyncGenerator = Depends(get_async_session)):
+async def upload_text(
+    file: UploadFile = F(...),
+    user: UserRead = Depends(current_user),
+    session: AsyncGenerator = Depends(get_async_session),
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -111,9 +120,11 @@ async def upload_text(file: UploadFile = F(...),
                     break
                 await out_file.write(chunk)
 
-        stmt = insert(tasks).values(user_id=user.id,
-                                    text_path=path,
-                                    status=Status.TEXT_RECEIVED.value).returning(tasks.id)
+        stmt = (
+            insert(tasks)
+            .values(user_id=user.id, text_path=path, status=Status.TEXT_RECEIVED.value)
+            .returning(tasks.id)
+        )
 
         result = await session.execute(stmt)
         task_id = result.fetchone()[0]
@@ -131,8 +142,9 @@ async def upload_text(file: UploadFile = F(...),
 
 
 @main_router.post("/start_diarization")
-async def start_diarization(task_id: int,
-                            session: AsyncGenerator = Depends(get_async_session)):
+async def start_diarization(
+    task_id: int, session: AsyncGenerator = Depends(get_async_session)
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -143,12 +155,16 @@ async def start_diarization(task_id: int,
         result = await session.execute(query)
         task = result.fetchone()[0]
         if not task:
-            raise HTTPException(status_code=400,
-                                detail="File is not upload, please upload file")
+            raise HTTPException(
+                status_code=400, detail="File is not upload, please upload file"
+            )
         file_path = task.audio_path
 
-        stmt = update(tasks).where(tasks.id == task_id).values(
-            status=Status.AUDIO_DIARIZATION_PROCESSING.value)
+        stmt = (
+            update(tasks)
+            .where(tasks.id == task_id)
+            .values(status=Status.AUDIO_DIARIZATION_PROCESSING.value)
+        )
         await session.execute(stmt)
         await session.commit()
 
@@ -167,8 +183,9 @@ async def start_diarization(task_id: int,
 
 
 @main_router.post("/start_create_report")
-async def start_create_report(task_id: int,
-                              session: AsyncGenerator = Depends(get_async_session)):
+async def start_create_report(
+    task_id: int, session: AsyncGenerator = Depends(get_async_session)
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -179,12 +196,16 @@ async def start_create_report(task_id: int,
         result = await session.execute(query)
         task = result.fetchone()[0]
         if not task:
-            raise HTTPException(status_code=400,
-                                detail="File is not upload, please upload file")
+            raise HTTPException(
+                status_code=400, detail="File is not upload, please upload file"
+            )
         file_path = task.text_path
 
-        stmt = update(tasks).where(tasks.id == task_id).values(
-            status=Status.AUDIO_DIARIZATION_PROCESSING.value)
+        stmt = (
+            update(tasks)
+            .where(tasks.id == task_id)
+            .values(status=Status.AUDIO_DIARIZATION_PROCESSING.value)
+        )
         await session.execute(stmt)
         await session.commit()
 
@@ -195,7 +216,10 @@ async def start_create_report(task_id: int,
         local_final_message["message"]["info"] = f"{e}"
 
     else:
-        if task.status == Status.TEXT_RECEIVED.value or Status.DIARIZATION_COMPLETED.value:
+        if (
+            task.status == Status.TEXT_RECEIVED.value
+            or task.status == Status.DIARIZATION_COMPLETED.value
+        ):
             local_final_message["status"] = Status.LLM_ANALYSIS_PROCESSING.value
             way = ["LLMQueue", "AnswerQueue"]
 
@@ -212,8 +236,9 @@ async def start_create_report(task_id: int,
 
 
 @admin_router.get("/user/{email}")
-async def see_user(email: EmailStr,
-                   session: AsyncGenerator = Depends(get_async_session)):
+async def see_user(
+    email: EmailStr, session: AsyncGenerator = Depends(get_async_session)
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -234,8 +259,9 @@ async def see_user(email: EmailStr,
 
 
 @admin_router.delete("/user/{email}")
-async def del_user(email: EmailStr,
-                   session: AsyncGenerator = Depends(get_async_session)):
+async def del_user(
+    email: EmailStr, session: AsyncGenerator = Depends(get_async_session)
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -255,8 +281,7 @@ async def del_user(email: EmailStr,
 
 
 @admin_router.post("/task")
-async def set_task(task: Task,
-                   session: AsyncGenerator = Depends(get_async_session)):
+async def set_task(task: Task, session: AsyncGenerator = Depends(get_async_session)):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -278,8 +303,7 @@ async def set_task(task: Task,
 
 
 @admin_router.get("/task/{task_id}")
-async def get_task(task_id: int,
-                   session: AsyncGenerator = Depends(get_async_session)):
+async def get_task(task_id: int, session: AsyncGenerator = Depends(get_async_session)):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -289,8 +313,8 @@ async def get_task(task_id: int,
         task = result.mapping().fetchone()[0]
         task_dict = task.copy()
 
-        local_final_message["status"] = task_dict.pop('status')
-        local_final_message["message"]["task_id"] = task_dict.pop('id')
+        local_final_message["status"] = task_dict.pop("status")
+        local_final_message["message"]["task_id"] = task_dict.pop("id")
         local_final_message["message"]["info"] = task_dict
 
     except Exception as e:
@@ -302,8 +326,9 @@ async def get_task(task_id: int,
 
 
 @admin_router.delete("/task/{task_id}")
-async def delete_task(task_id: int,
-                      session: AsyncGenerator = Depends(get_async_session)):
+async def delete_task(
+    task_id: int, session: AsyncGenerator = Depends(get_async_session)
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -325,8 +350,9 @@ async def delete_task(task_id: int,
 
 
 @admin_router.get("/tasks/status")
-async def get_tasks_filter_status(status: Status,
-                                  session: AsyncGenerator = Depends(get_async_session)):  # получить перечень задач по cтатусу
+async def get_tasks_filter_status(
+    status: Status, session: AsyncGenerator = Depends(get_async_session)
+):  # получить перечень задач по cтатусу
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -334,8 +360,7 @@ async def get_tasks_filter_status(status: Status,
         query = select(tasks).where(tasks.status == status.value)
         result = await session.execute(query)
         tasks_with_status = result.scalars().all()
-        tasks_with_status_as_dict = [
-            task.__dict__ for task in tasks_with_status]
+        tasks_with_status_as_dict = [task.__dict__ for task in tasks_with_status]
 
         local_final_message["status"] = Status.COMPLETED.value
         local_final_message["message"]["info"] = tasks_with_status_as_dict
@@ -348,8 +373,9 @@ async def get_tasks_filter_status(status: Status,
 
 
 @admin_router.get("/tasks/user")
-async def get_tasks_filter_user(email: EmailStr,
-                                session: AsyncGenerator = Depends(get_async_session)):  # получить задачи по юзеру
+async def get_tasks_filter_user(
+    email: EmailStr, session: AsyncGenerator = Depends(get_async_session)
+):  # получить задачи по юзеру
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -375,20 +401,23 @@ async def get_tasks_filter_user(email: EmailStr,
 
 # Стоит скорректировать вермя на работу с конкретной тайм-зоной, иначе путаница, нужно везде переделать работу с ru таймзоной ⏪
 @admin_router.get("/tasks/date")
-async def get_tasks_filter_date(start_date: date,
-                                end_date: date,
-                                session: AsyncGenerator = Depends(get_async_session)):
+async def get_tasks_filter_date(
+    start_date: date,
+    end_date: date,
+    session: AsyncGenerator = Depends(get_async_session),
+):
 
     if start_date > end_date:
-        raise HTTPException(status_code=400,
-                            detail="Start date must be before end date")
+        raise HTTPException(
+            status_code=400, detail="Start date must be before end date"
+        )
 
     local_final_message = copy.deepcopy(final_message)
 
     try:
-        query = select(tasks).\
-            where(tasks.creation_date >= start_date,
-                  tasks.creation_date <= end_date)
+        query = select(tasks).where(
+            tasks.creation_date >= start_date, tasks.creation_date <= end_date
+        )
         result = await session.execute(query)
         tasks_on_dates = result.scalars().all()
         tasks_on_dates_as_dict = [task.__dict__ for task in tasks_on_dates]
@@ -404,8 +433,10 @@ async def get_tasks_filter_date(start_date: date,
 
 
 @user_router.get("/tasks")
-async def get_user_tasks(user: UserRead = Depends(current_user),
-                         session: AsyncGenerator = Depends(get_async_session)):
+async def get_user_tasks(
+    user: UserRead = Depends(current_user),
+    session: AsyncGenerator = Depends(get_async_session),
+):
 
     local_final_message = copy.deepcopy(final_message)
 
@@ -427,16 +458,17 @@ async def get_user_tasks(user: UserRead = Depends(current_user),
 
 
 @user_router.delete("/task")
-async def del_user_task(task_id: int,
-                        user: UserRead = Depends(current_user),
-                        session: AsyncGenerator = Depends(get_async_session)):
+async def del_user_task(
+    task_id: int,
+    user: UserRead = Depends(current_user),
+    session: AsyncGenerator = Depends(get_async_session),
+):
 
     local_final_message = copy.deepcopy(final_message)
 
     try:
 
-        query = select(tasks).where(tasks.id == task_id,
-                                    tasks.user_id == user.id)
+        query = select(tasks).where(tasks.id == task_id, tasks.user_id == user.id)
         query_result = await session.execute(query)
         task = query_result.scalars().first()
 
