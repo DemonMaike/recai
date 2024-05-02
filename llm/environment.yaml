@@ -13,3 +13,4 @@ dependencies:
     - werkzeug
     - gunicorn
     - transformers
+    - accelerate
