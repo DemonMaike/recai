@@ -58,8 +58,8 @@ def create_report():
         prompt = request.form.get("prompt")
         try:
             result = analizing_meeting(prompt, filepath)
-        except:
-            return jsonify({"error": "Been problem with analizing"}), 400
+        except Exception as e:
+            return jsonify({"error": "{e}"}), 400
         return jsonify(report=result, filename=file.filename.split(".")[0])
     else:
         return jsonify({"error": "Invalid file type"}), 400
