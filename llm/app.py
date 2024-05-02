@@ -16,13 +16,11 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 device = "cuda"  # the device to load the model onto
 
 model = AutoModelForCausalLM.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
 )
 tokenizer = AutoTokenizer.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
 )
-model = model.to(device)
-model = torch.nn.DataParallel(model, device_ids=[0, 1, 2])
 
 
 def analizing_meeting(prompt: str, content: str) -> str:
