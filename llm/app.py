@@ -63,10 +63,10 @@ def create_report():
             result = analizing_meeting(prompt, file_content)
         except Exception as e:
             return jsonify({"error": f"{e}"}), 400
-        return jsonify(report=result, filename=file.filename.split(".")[0])
+        return jsonify(report=result, filename=filename.split(".")[0])
     else:
         return jsonify({"error": "Invalid file type"}), 400
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="127.0.0.1", port=5001)
