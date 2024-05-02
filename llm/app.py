@@ -14,16 +14,23 @@ ALLOWED_EXTENSIONS = {"txt"}
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 device = "cuda"  # the device to load the model onto
-
-for i in range(torch.cuda.device_count()):
-    torch.cuda.set_per_process_memory_fraction(0.9, device=i)
+device_map = {0: [0], 1: [1], 2: [2]}
 
 model = AutoModelForCausalLM.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map=device_map
 )
 tokenizer = AutoTokenizer.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map=device_map
 )
+
+if torch.cuda.is_available():
+    print("Доступные CUDA устройства:")
+    for i in range(torch.cuda.device_count()):
+        print(
+            f"Device {i}: {torch.cuda.get_device_name(i)} - память {torch.cuda.get_device_properties(i).total_memory / 1e6} MB"
+        )
+else:
+    print("CUDA устройства не найдены")
 
 
 def analizing_meeting(prompt: str, content: str) -> str:
