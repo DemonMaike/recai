@@ -57,7 +57,7 @@ async def main():
     async with connection:
         channel = await connection.channel()  # Создание канала
         await channel.set_qos(prefetch_count=1)
-        queue = await channel.declare_queue("DiarizationQueue", durable=True)
+        queue = await channel.declare_queue("LLMQueue", durable=True)
 
         async with aiohttp.ClientSession() as session:
             async for message in queue:
