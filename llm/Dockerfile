@@ -1,4 +1,13 @@
 FROM nvidia/cuda:12.0.0-runtime-ubuntu20.04
+
+FROM ubuntu:20.04
+
+ENV TZ=Asia/Dubai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt update
+RUN apt install -y tzdata
+
 RUN apt-get update && apt-get install -y wget bzip2 ca-certificates \
   libglib2.0-0 libxext6 libsm6 libxrender1 \
   git mercurial subversion
