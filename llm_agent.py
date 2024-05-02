@@ -66,6 +66,11 @@ async def main():
 
                 task = asyncio.create_task(
                     handle_task(session, body_data['file_path']))
+                    
+                # Обновляем данные сообщения
+                    body_data["way"].remove("LLMQueue")
+                    body_data["file_path"] = out_path
+                    updated_body = json.dumps(body_data)
 
                 await task
 
