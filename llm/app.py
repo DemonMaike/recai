@@ -15,6 +15,9 @@ app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 device = "cuda"  # the device to load the model onto
 
+for i in range(torch.cuda.device_count()):
+    torch.cuda.set_per_process_memory_fraction(0.9, device=i)
+
 model = AutoModelForCausalLM.from_pretrained(
     "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
 )
