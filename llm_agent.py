@@ -50,10 +50,8 @@ async def handle_task(session, file_path):
 
 
 async def main():
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(
-            "localhost", 5672, "/", pika.PlainCredentials("admin", "admin")
-        )
+    connection = await aio_pika.connect_robust(
+        "amqp://admin:admin@localhost/", loop=asyncio.get_event_loop()
     )
 
     async with connection:
