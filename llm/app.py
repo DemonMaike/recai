@@ -3,6 +3,7 @@ import os
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
+import torch
 
 from config import HF_TOKEN
 
@@ -12,7 +13,7 @@ ALLOWED_EXTENSIONS = {"txt"}
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-device = "cuda:0,1"  # the device to load the model onto
+device = "cuda"  # the device to load the model onto
 
 model = AutoModelForCausalLM.from_pretrained(
     "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN
@@ -20,7 +21,8 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(
     "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN
 )
-model.to(device)
+model = model.to(device)
+model = torch.nn.DataParallel(model)
 
 
 def analizing_meeting(prompt: str, diarization: str) -> str:
