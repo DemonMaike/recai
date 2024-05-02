@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.0.0-devel-ubuntu20.04 
+FROM nvidia/cuda:12.0.0-runtime-ubuntu20.04
 RUN apt-get update && apt-get install -y wget bzip2 ca-certificates \
   libglib2.0-0 libxext6 libsm6 libxrender1 \
   git mercurial subversion
