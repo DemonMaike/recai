@@ -14,13 +14,12 @@ ALLOWED_EXTENSIONS = {"txt"}
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 device = "cuda"  # the device to load the model onto
-device_map = {0: [0], 1: [1], 2: [2]}
 
 model = AutoModelForCausalLM.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map=device_map
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
 )
 tokenizer = AutoTokenizer.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map=device_map
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
 )
 
 if torch.cuda.is_available():

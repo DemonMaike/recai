@@ -1,17 +1,27 @@
-FROM continuumio/miniconda3
+FROM nvidia/cuda:12.0-base
+RUN apt-get update && apt-get install -y wget bzip2 ca-certificates \
+  libglib2.0-0 libxext6 libsm6 libxrender1 \
+  git mercurial subversion
 
-# Set the working directory in the container to /app
+# Установка Miniconda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+RUN bash ~/miniconda.sh -b -p /opt/conda
+RUN rm ~/miniconda.sh
+ENV PATH="/opt/conda/bin:$PATH"
+RUN conda update -n base -c defaults conda
+
 WORKDIR /app
 
-# Install the required packages
 COPY environment.yaml /app
 RUN conda env create -f /app/environment.yaml
+
 ARG hftoken
+
 # Copy the app itself
 RUN mkdir -p /app/uploads
 COPY app.py config.py ./
 
-# Make port 5000 available to the world outside this container
+# Make port 5001 available to the world outside this container
 EXPOSE 5001
 
 # Define environment variable for Flask to run on 0.0.0.0
