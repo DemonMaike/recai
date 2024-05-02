@@ -4,7 +4,7 @@ import json
 
 from docx import Document
 import aiohttp
-import pika
+import aio_pika
 import aiofiles
 
 
@@ -28,20 +28,20 @@ async def handle_task(session, file_path):
 
     data = aiohttp.FormData()
     data.add_field(
-        'file',
-        open(file_path, 'rb'),
-        filename=file_name,
-        content_type=f"text/plain")
+        "file", open(file_path, "rb"), filename=file_name, content_type=f"text/plain"
+    )
 
     try:
         # Отправляем задачу в контейнер, в дальнейшем должен быть хаб.
-        async with session.post('http://127.0.0.1:5001/create_report',
-                                data=data, timeout=500) as response:
+        async with session.post(
+            "http://127.0.0.1:5001/create_report", data=data, timeout=500
+        ) as response:
             if response.status == 200:
                 result = await response.json()
 
                 await loop.run_in_executor(None, create_docx, out_name, result)
                 print("Файл создан")
+                return file_path
 
             else:
                 print("Ошибка при обработке запроса.")
@@ -50,35 +50,44 @@ async def handle_task(session, file_path):
 
 
 async def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        'localhost', 5672, '/', pika.PlainCredentials("admin", "admin")))
-    channel = connection.channel()
-    channel.queue_declare(queue='LLMQueue', durable=True)
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(
+            "localhost", 5672, "/", pika.PlainCredentials("admin", "admin")
+        )
+    )
 
-    async with aiohttp.ClientSession() as session:
-        while True:
-            method_frame, properties, body = next(channel.consume(
-                'LLMQueue', inactivity_timeout=None))
-            if method_frame:
-                print("Recived message. Working...")
-                body_decoded = body.decode("utf-8")
-                body_data = json.loads(body_decoded)
+    async with connection:
+        channel = await connection.channel()  # Создание канала
+        await channel.set_qos(prefetch_count=1)
+        queue = await channel.declare_queue("DiarizationQueue", durable=True)
 
-                task = asyncio.create_task(
-                    handle_task(session, body_data['file_path']))
-                    
-                # Обновляем данные сообщения
+        async with aiohttp.ClientSession() as session:
+            async for message in queue:
+                async with message.process():
+                    print("Received message. Working...")
+                    body_data = json.loads(message.body.decode())
+
+                    task = asyncio.create_task(
+                        handle_task(session, body_data["file_path"])
+                    )
+                    out_path = await task
+
+                    # Обновляем данные сообщения
                     body_data["way"].remove("LLMQueue")
                     body_data["file_path"] = out_path
                     updated_body = json.dumps(body_data)
 
-                await task
+                    # Отправка сообщения обратно в MainQueue
+                    await channel.default_exchange.publish(
+                        aio_pika.Message(
+                            body=updated_body.encode(),
+                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                        ),
+                        routing_key="MainQueue",
+                    )
+                    print("Сообщение отправлено в MainQueue")
+                    print(updated_body)
 
-                # По хорошему все же надо тоже перевести в асинхронку + разделить создание текста и изменение в бд, может через селери делать как отдельный процесс.
-                channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-            else:
-                # Если время ожидания истекло, делаем небольшую паузу перед следующей итерацией
-                await asyncio.sleep(1)
 
 if __name__ == "__main__":
     asyncio.run(main())
