@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8-base
+FROM nvidia/cuda
 RUN apt-get update && apt-get install -y wget bzip2 ca-certificates \
   libglib2.0-0 libxext6 libsm6 libxrender1 \
   git mercurial subversion
