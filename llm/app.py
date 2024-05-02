@@ -25,8 +25,8 @@ model = model.to(device)
 model = torch.nn.DataParallel(model)
 
 
-def analizing_meeting(prompt: str, diarization: str) -> str:
-    messages = [{"role": "user", "content": f"{prompt}\n{diarization}"}]
+def analizing_meeting(prompt: str, content: str) -> str:
+    messages = [{"role": "user", "content": f"{prompt}\n{content}"}]
 
     encodeds = tokenizer.apply_chat_template(messages, return_tensors="pt")
     model_inputs = encodeds.to(device)
@@ -59,7 +59,9 @@ def create_report():
         file.save(filepath)
         prompt = request.form.get("prompt")
         try:
-            result = analizing_meeting(prompt, filepath)
+            with open(filepath, "r") as file:
+                file_content = file.read()
+            result = analizing_meeting(prompt, file_content)
         except Exception as e:
             return jsonify({"error": f"{e}"}), 400
         return jsonify(report=result, filename=file.filename.split(".")[0])
