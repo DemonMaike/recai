@@ -63,8 +63,8 @@ async def main():
         queue = await channel.declare_queue("LLMQueue", durable=True)
 
         async with aiohttp.ClientSession() as session:
-            async for message in queue:
-                async with message.process():
+            try:
+                async for message in queue:
                     print("Received message. Working...")
                     body_data = json.loads(message.body.decode())
                     print(body_data)
@@ -87,9 +87,15 @@ async def main():
                         ),
                         routing_key="MainQueue",
                     )
-                    print("Сообщение отправлено в MainQueue")
-                    print(updated_body)
+
+                    await message.ack()
+                    print(f"Сообщение отправлено в MainQueue.\n{updated_body}")
+
+            except Exception as e:
+                await message.nack(requeue=True)
+                print(f"Сообщение отклоненно агентом llm. Возвращаю в очередь.\n{e}")
 
 
 if __name__ == "__main__":
+    print("Слушаю очередь LLMQueue")
     asyncio.run(main())
