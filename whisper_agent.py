@@ -81,6 +81,17 @@ async def main():
                     body_data["file_path"] = out_path
                     updated_body = json.dumps(body_data)
 
+                    # Отправка сообщения в AnswerQueue
+                    await channel.default_exchange.publish(
+                        aio_pika.Message(
+                            body=updated_body.encode(),
+                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                        ),
+                        routing_key="AnswerQueue",
+                    )
+                    print("Сообщение отправлено в MainQueue")
+                    print(updated_body)
+
                     # Отправка сообщения обратно в MainQueue
                     await channel.default_exchange.publish(
                         aio_pika.Message(

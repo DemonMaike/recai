@@ -17,6 +17,7 @@ def create_docx(filename: str, text: str) -> None:
     doc.add_paragraph(text)
     doc.save(out_path)
     print(out_path, " created")
+    return out_path
 
 
 async def handle_task(session, file_path):
@@ -39,9 +40,11 @@ async def handle_task(session, file_path):
             if response.status == 200:
                 result = await response.json()
 
-                await loop.run_in_executor(None, create_docx, out_name, result)
+                out_path = await loop.run_in_executor(
+                    None, create_docx, out_name, result
+                )
                 print("Файл создан")
-                return file_path
+                return out_path
 
             else:
                 print("Ошибка при обработке запроса.")
