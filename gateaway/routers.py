@@ -199,7 +199,11 @@ async def start_create_report(
             raise HTTPException(
                 status_code=400, detail="File is not upload, please upload file"
             )
-        file_path = task.text_path
+
+        if not task.text_path:
+            file_path = task.audio_path
+        else:
+            file_path = task.text_path
 
         stmt = (
             update(tasks)
