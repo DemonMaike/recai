@@ -41,7 +41,7 @@ async def handle_task(session, file_path):
                 result = await response.json()
 
                 out_path = await loop.run_in_executor(
-                    None, create_docx, out_name, result
+                    None, create_docx, out_name, result["report"].split("[/INST]")[-1]
                 )
                 print("Файл создан")
                 return out_path
