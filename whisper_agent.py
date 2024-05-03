@@ -49,7 +49,7 @@ async def handle_task(session, file_path):
                 return out_file_path
 
             else:
-                print("Ошибка при обработке запроса.")
+                print(f"Ошибка при обработке запроса. {response}")
     except aiohttp.ClientError as e:
         print("Ошибка соединения: ", e)
 
