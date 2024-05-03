@@ -89,7 +89,7 @@ async def main():
                         ),
                         routing_key="AnswerQueue",
                     )
-                    await message.ack()
+
                     print(f"Сообщение отправлено в AnswerQueue.\n{updated_body}")
 
                     # Отправка сообщения обратно в MainQueue
