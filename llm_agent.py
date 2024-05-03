@@ -14,7 +14,7 @@ UPLOAD_FOLDER = "static/report"
 def create_docx(filename: str, text: str) -> None:
     out_path = os.path.join(UPLOAD_FOLDER, filename)
     doc = Document()
-    doc.add_paragrah(text)
+    doc.add_paragraph(text)
     doc.save(out_path)
     print(out_path, " created")
 
