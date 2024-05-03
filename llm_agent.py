@@ -64,6 +64,7 @@ async def main():
                 async with message.process():
                     print("Received message. Working...")
                     body_data = json.loads(message.body.decode())
+                    print(body_data)
 
                     task = asyncio.create_task(
                         handle_task(session, body_data["file_path"])

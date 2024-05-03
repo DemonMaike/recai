@@ -17,8 +17,7 @@ async def create_file_from_whisper_container(path, content):
             started = sent["start"]
             finised = sent["end"]
             text = sent["text"].strip()
-            output_format.append(
-                f"{speaker}\n{started} ... {finised}\n{text}\n")
+            output_format.append(f"{speaker}\n{started} ... {finised}\n{text}\n")
 
         await file.write("\n".join(output_format))
 
@@ -31,15 +30,17 @@ async def handle_task(session, file_path):
 
     data = aiohttp.FormData()
     data.add_field(
-        'file',
-        open(file_path, 'rb'),
+        "file",
+        open(file_path, "rb"),
         filename=file_name,
-        content_type=f"audio/{ext.lstrip('.')}")
+        content_type=f"audio/{ext.lstrip('.')}",
+    )
 
     try:
         # Отправляем задачу в контейнер, в дальнейшем должен быть хаб.
-        async with session.post('http://127.0.0.1:5000/transcribe',
-                                data=data, timeout=500) as response:
+        async with session.post(
+            "http://127.0.0.1:5000/transcribe", data=data, timeout=500
+        ) as response:
             if response.status == 200:
                 result = await response.json()
 
@@ -61,16 +62,18 @@ async def main():
     async with connection:
         channel = await connection.channel()  # Создание канала
         await channel.set_qos(prefetch_count=1)
-        queue = await channel.declare_queue('DiarizationQueue', durable=True)
+        queue = await channel.declare_queue("DiarizationQueue", durable=True)
 
         async with aiohttp.ClientSession() as session:
             async for message in queue:
                 async with message.process():
                     print("Received message. Working...")
                     body_data = json.loads(message.body.decode())
+                    print(body_data)
 
                     task = asyncio.create_task(
-                        handle_task(session, body_data['file_path']))
+                        handle_task(session, body_data["file_path"])
+                    )
                     out_path = await task
 
                     # Обновляем данные сообщения
@@ -82,13 +85,14 @@ async def main():
                     await channel.default_exchange.publish(
                         aio_pika.Message(
                             body=updated_body.encode(),
-                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                         ),
-                        routing_key='MainQueue'
+                        routing_key="MainQueue",
                     )
                     print("Сообщение отправлено в MainQueue")
                     print(updated_body)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("Слушаю очередь DiarizationQueue")
     asyncio.run(main())
