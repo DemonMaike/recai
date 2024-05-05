@@ -6,6 +6,7 @@
 
 import asyncio
 import json
+from functools import partial
 
 from aio_pika import connect
 from aio_pika import IncomingMessage
@@ -26,13 +27,15 @@ async def main():
 
             if "file_path" in data and data["file_path"] is not None:
                 loop = asyncio.get_running_loop()
-                if "chat_id" in data.keys():
-                    respone = await loop.run_in_executor(None, send_telegram_document, data['file_path'], chat_id=data['chat_id'])
-                else:
-                    respone = await loop.run_in_executor(None, send_telegram_document, data['file_path'])
 
-                print(
-                    f"Ответ телеграм сервера:\n{respone}")
+                if "chat_id" in data:
+                    send_func = partial(send_telegram_document, data['file_path'], chat_id=data['chat_id'])
+                else:
+                    send_func = partial(send_telegram_document, data['file_path'])
+
+                response = await loop.run_in_executor(None, send_func)
+
+                print(f"Ответ телеграм сервера:\n{response}")
             else:
                 print("Проблема с file_path")
 

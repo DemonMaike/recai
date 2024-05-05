@@ -37,7 +37,7 @@ async def test(client, message):
 
         data.add_field(
             "chat_id",
-            chat,
+            str(chat),
         )
 
         async with aiohttp.ClientSession() as session:
