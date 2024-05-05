@@ -2,7 +2,7 @@ from datetime import date
 from typing import AsyncGenerator
 import copy
 
-from fastapi import APIRouter, Depends, File as F, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File as F, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import EmailStr
 from sqlalchemy import insert, select, update, delete
@@ -45,7 +45,7 @@ test_router = APIRouter(
 @test_router.post('/start')
 async def telegram_test(
     file: UploadFile = F(...),
-    chat_id: str = "012345",
+    chat_id: str = Form(...),
     ):
     local_final_message = copy.deepcopy(final_message)
     local_final_message["status"] = Status.AUDIO_DIARIZATION_PROCESSING.value
