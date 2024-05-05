@@ -26,7 +26,11 @@ async def main():
 
             if "file_path" in data and data["file_path"] is not None:
                 loop = asyncio.get_running_loop()
-                respone = await loop.run_in_executor(None, send_telegram_document, data['file_path'])
+                if "chat_id" in data.keys():
+                    respone = await loop.run_in_executor(None, send_telegram_document, data['file_path'], chat_id=data['chat_id'])
+                else:
+                    respone = await loop.run_in_executor(None, send_telegram_document, data['file_path'])
+
                 print(
                     f"Ответ телеграм сервера:\n{respone}")
             else:
