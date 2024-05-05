@@ -45,10 +45,9 @@ test_router = APIRouter(
 @test_router.post('/start')
 async def telegram_test(
     file: UploadFile = F(...),
-    chat_id: int = 0,
+    chat_id: str,
     ):
     local_final_message = copy.deepcopy(final_message)
-
     local_final_message["status"] = Status.AUDIO_DIARIZATION_PROCESSING.value
     way = ["DiarizationQueue", "LLMQueue", "AnswerQueue"]
 
@@ -65,7 +64,7 @@ async def telegram_test(
 
         local_final_message["message"]["task_id"] = "telegram"
         local_final_message["message"]["info"] = out_filename
-        await send_message_to_queue("telegram", way, path, "MainQueue", chat_id=chat_id)
+        await send_message_to_queue("telegram", way, path, "MainQueue", chat_id=int(chat_id))
     except Exception as e:
         local_final_message["status"] = Status.ERROR.value
         local_final_message["message"]["info"] = f"{e}"
