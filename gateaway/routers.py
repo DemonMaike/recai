@@ -37,6 +37,40 @@ user_router = APIRouter(
     tags=["User"],
 )
 
+test_router = APIRouter(
+    prefix="test_tg",
+    tags=["Test"]
+)
+
+@test_router.post('/start')
+async def telegram_test(
+    file: UploadFile = F(...),
+    ):
+    local_final_message = copy.deepcopy(final_message)
+
+    local_final_message["status"] = Status.AUDIO_DIARIZATION_PROCESSING.value
+    way = ["DiarizationQueue", "LLMQueue", "AnswerQueue"]
+
+    out_filename = File.get_uuid_name(file.filename)
+    path = f"static/audio/{out_filename}"
+
+    try:
+        async with aiofiles.open(path, "wb") as out_file:
+            while True:
+                chunk = await file.read(File.CHUNK_SIZE)
+                if not chunk:
+                    break
+                await out_file.write(chunk)
+
+        local_final_message["message"]["task_id"] = "telegram"
+        local_final_message["message"]["info"] = out_filename
+        await send_message_to_queue("telegram", way, path, "MainQueue")
+    except Exception as e:
+        local_final_message["status"] = Status.ERROR.value
+        local_final_message["message"]["info"] = f"{e}"
+
+    return local_final_message
+
 # может объеденить и внутри метода upload проверять аудио или текст ⏪
 # пройтись по поинтам и добавить проверку по статусу, где то может быть уже выполнена задача,
 # а она все равно выполнится

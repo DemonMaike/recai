@@ -25,7 +25,7 @@ class File:
     """Work with file in this app."""
 
     CHUNK_SIZE = 5 * 1024 * 1024
-    AUDIO_FORMATS = ('.wav', '.mp3', '.aac', '.alac', '.flac', '.m4a', '.amr')
+    AUDIO_FORMATS = ('.wav', '.mp3', '.aac', '.alac', '.flac', '.m4a', '.amr', '.ogg')
     TEXT_FORMATS = ('.txt', '.md')  # doc, pdf ? ⏪
 
     @classmethod
