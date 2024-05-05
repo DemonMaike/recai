@@ -45,7 +45,7 @@ test_router = APIRouter(
 @test_router.post('/start')
 async def telegram_test(
     file: UploadFile = F(...),
-    chat_id: str,
+    chat_id: str = "012345",
     ):
     local_final_message = copy.deepcopy(final_message)
     local_final_message["status"] = Status.AUDIO_DIARIZATION_PROCESSING.value
