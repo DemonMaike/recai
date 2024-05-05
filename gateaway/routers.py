@@ -38,7 +38,7 @@ user_router = APIRouter(
 )
 
 test_router = APIRouter(
-    prefix="test_tg",
+    prefix="/test_tg",
     tags=["Test"]
 )
 
