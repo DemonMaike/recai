@@ -8,7 +8,7 @@ pip install -r requirements.txt
 ```
 
 ```bash
-sudo docker build whiper/wishperX-api -t whisper:latest
+sudo docker build whisper/whisperX-api -t whisper:latest
 sudo docker build rabbitmq -t rabbit:castom
 sudo docker run -d --rm --name postgres -p 127.0.0.1:5430:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSSWORD=postgres postgres:latest
 sudo docker run --rm -d -p 127.0.0.1:5672:5672 -p 40002:15672 -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=admin --name rabbit rabbit:custom
