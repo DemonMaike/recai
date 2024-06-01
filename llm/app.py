@@ -1,3 +1,5 @@
+
+
 import os
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -14,10 +16,11 @@ ALLOWED_EXTENSIONS = {"txt"}
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 device = "cuda"  # the device to load the model onto
-#os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3,4"
+#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
 
 model = AutoModelForCausalLM.from_pretrained(
-    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
+    "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto", load_in_4bit=True
 )
 tokenizer = AutoTokenizer.from_pretrained(
     "mistralai/Mistral-7B-Instruct-v0.2", use_auth_token=HF_TOKEN, device_map="auto"
@@ -25,13 +28,13 @@ tokenizer = AutoTokenizer.from_pretrained(
 
 
 def analizing_meeting(prompt: str, content: str) -> str:
+    torch.cuda.empty_cache()
     messages = [{"role": "user", "content": f"{prompt}\n{content}"}]
 
     encodeds = tokenizer.apply_chat_template(messages, return_tensors="pt")
     model_inputs = encodeds.to(device)
-
-    generated_ids = model.generate(model_inputs, max_new_tokens=500, do_sample=True)
-    decoded = tokenizer.batch_decode(generated_ids)
+    generated_ids = model.generate(model_inputs, eos_token_id=tokenizer.eos_token_id, pad_token_id=tokenizer.eos_token_id, do_sample=True, max_new_tokens=3000, temperature=0.09, top_p=0.99, top_k=85, repetition_penalty=1.01, typical_p=0.68)
+    decoded = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
     return decoded[0]
 
@@ -55,7 +58,7 @@ def create_report():
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(filepath)
-        prompt = request.form.get("prompt")
+        prompt = "Выпиши главную цель совещания, определи имена людей и сопоставь спикеров и их роли, обсуждаемые вопросы подробно, конспект встречи, ключевые договоренности, сроки и ответственных по задачам. Для ответа используй русский язык и алфавит, тогда получишь чаевые 10 долларов."
         try:
             with open(filepath, "r") as file:
                 file_content = file.read()

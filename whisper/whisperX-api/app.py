@@ -10,7 +10,7 @@ import config
 
 device = "cuda"
 audio_file = "audio.mp3"
-batch_size = 8  # reduce if low on GPU mem
+batch_size = 16  # reduce if low on GPU mem
 compute_type = "float16"  # change to "int8" if low on GPU mem (may reduce accuracy)
 min_speakers = 1
 max_speakers = 10
@@ -19,7 +19,7 @@ ALLOWED_EXTENSIONS = {"mp3", "wav", "awb", "aac", "ogg", "oga", "m4a", "wma", "a
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 # Load models
 model = whisperx.load_model("large-v2", device, compute_type=compute_type)
 diarize_model = whisperx.DiarizationPipeline(
