@@ -19,7 +19,7 @@ ALLOWED_EXTENSIONS = {"mp3", "wav", "awb", "aac", "ogg", "oga", "m4a", "wma", "a
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # Load models
 model = whisperx.load_model("large-v2", device, compute_type=compute_type)
 diarize_model = whisperx.DiarizationPipeline(
