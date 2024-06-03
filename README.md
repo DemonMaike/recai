@@ -27,18 +27,18 @@ for last command there is need install NVIDIA docker drivers else --gpus will no
 uvicorn gateaway.main:app --host 0.0.0.0 --port 40001
 ```
 
-###within other windows:
+### within other windows:
 - python main_agent.py
 - python wisper_agent.py
 - python llm_agent.py
 - python sender_agent.py
 - python utils/bot.py
 
-###finally result global:
+### finally result global:
 - 40001 - fastapi interface
 - 40002 - rabbitmq managment with admin user admin:admin, if need update base admin, change rabbitmq/settings/definitions.json
 
-###local:
+### local:
 - 5432 - postgres
 - 5672 - rabbitmq queue default exchange
 - 5000 - whipser api
