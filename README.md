@@ -6,6 +6,13 @@ python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 ```
+```bash
+mkdir static && mkdir static/text static/audio static/report
+mkdir llm/uploads whisper/whisperX-api/uploads utils/uploads
+```
+```bash
+sudo at install ffmeg
+```
 
 ```bash
 sudo docker build whisper/whisperX-api -t whisper:latest
